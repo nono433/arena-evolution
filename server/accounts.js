@@ -8,18 +8,43 @@ const Items = require('./items');
 const FILE = path.join(__dirname, '..', 'data', 'saves.json');
 let accounts = {};
 let dirty = false;
+let pool = null;
+const lastSaved = new Map();
 
-function load() {
-  try { accounts = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) { accounts = {}; }
+// Charge les comptes : Postgres si DATABASE_URL est défini, sinon fichier JSON local.
+async function init() {
+  if (process.env.DATABASE_URL) {
+    const { Pool } = require('pg');
+    pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 3 });
+    await pool.query('CREATE TABLE IF NOT EXISTS accounts (k TEXT PRIMARY KEY, data JSONB NOT NULL, updated TIMESTAMPTZ DEFAULT now())');
+    const r = await pool.query('SELECT k, data FROM accounts');
+    for (const row of r.rows) { accounts[row.k] = row.data; lastSaved.set(row.k, JSON.stringify(row.data)); }
+    console.log(`Base Postgres connectée : ${r.rows.length} comptes`);
+  } else {
+    try { accounts = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) { accounts = {}; }
+    console.log('Pas de DATABASE_URL : sauvegarde dans data/saves.json');
+  }
 }
-function save() {
-  if (!dirty) return;
-  dirty = false;
+let saving = false;
+async function save() {
+  if (saving) return;
+  saving = true;
   try {
-    fs.mkdirSync(path.dirname(FILE), { recursive: true });
-    fs.writeFileSync(FILE + '.tmp', JSON.stringify(accounts));
-    fs.renameSync(FILE + '.tmp', FILE);
+    if (pool) {
+      for (const k in accounts) {
+        const js = JSON.stringify(accounts[k]);
+        if (lastSaved.get(k) === js) continue;
+        await pool.query('INSERT INTO accounts (k, data) VALUES ($1, $2) ON CONFLICT (k) DO UPDATE SET data = $2, updated = now()', [k, js]);
+        lastSaved.set(k, js);
+      }
+    } else if (dirty) {
+      dirty = false;
+      fs.mkdirSync(path.dirname(FILE), { recursive: true });
+      fs.writeFileSync(FILE + '.tmp', JSON.stringify(accounts));
+      fs.renameSync(FILE + '.tmp', FILE);
+    }
   } catch (e) { console.error('Sauvegarde impossible', e.message); }
+  saving = false;
 }
 const hash = (pw, salt) => crypto.scryptSync(pw, salt, 32).toString('hex');
 const key = n => n.trim().toLowerCase();
@@ -59,7 +84,5 @@ function top(n = 20) {
 }
 const touch = () => { dirty = true; };
 
-load();
 setInterval(save, 15000).unref();
-process.on('exit', save);
-module.exports = { login, top, save, touch, score };
+module.exports = { init, login, top, save, touch, score };

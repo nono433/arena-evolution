@@ -48,5 +48,6 @@ wss.on('connection', ws => {
   ws.on('error', () => { });
 });
 
-server.listen(PORT, () => console.log(`Arena Evolution — http://localhost:${PORT}`));
-process.on('SIGINT', () => { Acc.save(); process.exit(0); });
+Acc.init().then(() => server.listen(PORT, () => console.log(`Arena Evolution — http://localhost:${PORT}`))).catch(e => { console.error('Init base impossible', e); process.exit(1); });
+const bye = async () => { await Acc.save(); process.exit(0); };
+process.on('SIGINT', bye); process.on('SIGTERM', bye);
