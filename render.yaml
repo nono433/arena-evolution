@@ -3,6 +3,7 @@ services:
     name: arena-evolution
     runtime: node
     plan: free
+    region: frankfurt
     buildCommand: npm install
     startCommand: node server/index.js
     healthCheckPath: /

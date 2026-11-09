@@ -88,7 +88,7 @@
       case 'toast': toast(m.m, m.k, m.r); if (m.k === 'level') sfx('level'); break;
       case 'loot': sfx('coin'); break;
       case 'died': $('d-by').textContent = 'Terrassé par ' + m.by; $('death').hidden = false; wantRespawn = false; deathT = performance.now(); setTimeout(() => { $('death').hidden = true; if (me && me.dead) openForge(); }, 1700); break;
-      case 'pong': rtt = rtt * 0.6 + (performance.now() - m.c) * 0.4; break;
+      case 'pong': rtt = rtt * 0.6 + (performance.now() - m.c) * 0.4; $('h-ping').textContent = Math.round(rtt) + ' ms'; break;
     }
   }
   function startGame(m) {
