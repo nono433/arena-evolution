@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arena Evolution</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- ===== Menus d'entrée ===== -->
+<div id="screen-main" class="screen">
+  <div class="title-wrap">
+    <div class="logo">ARENA<span>EVOLUTION</span></div>
+    <p class="tag">Meurs. Deviens plus fort. Domine l'arène.</p>
+    <div class="menu-btns">
+      <button class="btn big gold" id="b-play">⚔ Jouer</button>
+      <button class="btn big" id="b-board">🏆 Classement</button>
+      <button class="btn big" id="b-help">📜 Contrôles</button>
+    </div>
+    <div class="foot" id="main-online">Un serveur, une arène : combattez d'autres joueurs et des monstres.</div>
+  </div>
+</div>
+
+<div id="screen-login" class="screen" hidden>
+  <div class="panel login">
+    <h2>Connexion</h2>
+    <p class="sub">Entrez un nom et un mot de passe. Un nouveau nom crée un nouveau héros ; sinon votre progression est restaurée.</p>
+    <label>Nom du héros<input id="in-name" maxlength="14" autocomplete="username" placeholder="Ex : Aldric"></label>
+    <label>Mot de passe<input id="in-pass" type="password" autocomplete="current-password" placeholder="3 caractères minimum"></label>
+    <div class="sub strong">Classe (pour un nouveau héros)</div>
+    <div class="classes" id="class-pick"></div>
+    <div class="sub strong">Couleur</div>
+    <div class="hues" id="hue-pick"></div>
+    <div id="login-err" class="error"></div>
+    <div class="row"><button class="btn" id="l-back">Retour</button><button class="btn gold" id="l-go">Entrer dans l'arène</button></div>
+  </div>
+</div>
+
+<div id="screen-board" class="screen" hidden>
+  <div class="panel wide">
+    <h2>🏆 Classement des héros</h2>
+    <div id="board-list" class="table"></div>
+    <div class="row"><button class="btn" id="bd-back">Retour</button></div>
+  </div>
+</div>
+
+<div id="screen-help" class="screen" hidden>
+  <div class="panel login">
+    <h2>Contrôles</h2>
+    <div class="help">
+      <div><kbd>W A S D</kbd> / flèches</div><div>Se déplacer (ZQSD sur AZERTY)</div>
+      <div><kbd>Souris</kbd></div><div>Viser</div>
+      <div><kbd>Clic gauche</kbd></div><div>Attaquer (maintenir)</div>
+      <div><kbd>Espace</kbd></div><div>Esquive (invulnérable un instant)</div>
+      <div><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> / <kbd>Clic droit</kbd></div><div>Compétences (clic droit = emplacement 1)</div>
+      <div><kbd>B</kbd> / <kbd>I</kbd></div><div>Forge : améliorations, équipement, compétences, boutique (au Sanctuaire central ou après une mort)</div>
+      <div><kbd>Tab</kbd></div><div>Classement en direct</div>
+      <div><kbd>Échap</kbd></div><div>Fermer / quitter</div>
+    </div>
+    <p class="sub">Chaque mort ouvre la Forge : dépensez l'or et l'essence gagnés pour devenir plus puissant, puis retournez dans l'arène.</p>
+    <div class="row"><button class="btn" id="h-back">Retour</button></div>
+  </div>
+</div>
+
+<!-- ===== Interface de jeu ===== -->
+<div id="hud" hidden>
+  <div id="card">
+    <div class="lvl" id="h-lvl">1</div>
+    <div class="bars">
+      <div class="name" id="h-name"></div>
+      <div class="bar hp"><i id="h-hp"></i><b id="h-hptxt"></b><u id="h-shield"></u></div>
+      <div class="bar xp"><i id="h-xp"></i><b id="h-xptxt"></b></div>
+      <div class="res"><span>🪙 <em id="h-gold">0</em></span><span>💎 <em id="h-ess">0</em></span><span id="h-streak"></span></div>
+    </div>
+  </div>
+  <div id="topright">
+    <canvas id="mini" width="200" height="150"></canvas>
+    <div class="online">👥 <em id="h-online">1</em> en ligne · <em id="h-zone"></em></div>
+    <div id="feed"></div>
+  </div>
+  <div id="target" hidden><div class="tn"><span id="t-name"></span><small id="t-info"></small></div><div class="bar hp small"><i id="t-hp"></i></div></div>
+  <div id="skillbar"></div>
+  <div id="hint" hidden></div>
+  <div id="toasts"></div>
+  <div id="alert" hidden></div>
+</div>
+
+<div id="tabboard" hidden><div class="panel wide"><h2>Classement</h2><div id="tab-list" class="table"></div></div></div>
+
+<div id="death" hidden><div><h1>VAINCU</h1><p id="d-by"></p><small>La Forge s'ouvre…</small></div></div>
+
+<!-- ===== Forge (menu d'amélioration) ===== -->
+<div id="menu" hidden>
+  <div class="forge">
+    <div class="f-head">
+      <div class="f-title">⚒ La Forge <small id="f-state"></small></div>
+      <div class="f-res"><span class="chip">Niv. <em id="f-lvl">1</em></span><span class="chip gold">🪙 <em id="f-gold">0</em></span><span class="chip ess">💎 <em id="f-ess">0</em></span></div>
+    </div>
+    <div class="tabs" id="f-tabs">
+      <button data-tab="stats" class="on">Statistiques</button><button data-tab="equip">Équipement</button><button data-tab="skills">Compétences</button><button data-tab="shop">Boutique</button>
+    </div>
+    <div class="f-body" id="f-body"></div>
+    <div class="f-foot"><span id="f-msg"></span><button class="btn gold big" id="f-go">⚔ Retourner dans l'arène</button></div>
+  </div>
+  <canvas id="fx"></canvas>
+</div>
+
+<div id="conn" hidden>Connexion perdue. <button class="btn" onclick="location.reload()">Recharger</button></div>
+
+<script src="/shared/world.js"></script>
+<script src="js/art.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
